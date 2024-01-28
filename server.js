@@ -32,7 +32,7 @@ const fileSchema = new mongoose.Schema({
     file: String,
     fileName: String,
     timestamp: { type: Date, default: Date.now },
-    permanent: { type: Boolean, default: false }, 
+    permanent: { type: Boolean, default: true }, 
 });
 
 const FileModel = mongoose.model('File', fileSchema);
@@ -75,7 +75,7 @@ app.post('/saveData', upload.single('file'), async (req, res) => {
         video: video || '',
         file: req.file ? `/uploads/${req.file.filename}` : '',
         fileName: `${fileName || ''}`,
-        permanent: permanent === 'true', // Convert string to boolean
+        permanent: permanent === 'true',
     });
 
     try {
@@ -113,7 +113,7 @@ app.get('/getData', async (req, res) => {
     }
 
     if (permanent) {
-        query.permanent = permanent === 'true'; // Convert string to boolean
+        query.permanent = permanent === 'true'; 
     }
 
     try {
