@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="shortcut icon" href="https://i.pinimg.com/originals/7a/69/1c/7a691c80590b0f780f75a7a2afbf957f.png"
+        type="image/x-icon">
+    <title>Cloud Data</title>
+    <style>
+        body {
+            background-color: black;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            text-align: center;
+            font-weight: bolder;
+            height: 100vh;
+        }
+
+        #fileNameInput {
+            text-transform: capitalize;
+        }
+
+        .container {
+            background-color: aqua;
+            border: 3px dashed red;
+            padding: 5px 20px;
+            color: black;
+        }
+
+        form {
+            text-align: left;
+        }
+
+        .file-input-container {
+            text-align: center;
+            padding: 5px 0;
+        }
+
+        .file-label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 18px;
+            color: #333;
+        }
+
+        .file-input {
+            padding: 5px 10px;
+            border: 2px solid #3498db;
+            border-radius: 5px;
+            background-color: #ecf0f1;
+            color: #333;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .file-input:hover {
+            background-color: #d6eaf8;
+        }
+
+        .file-input:focus {
+            outline: none;
+            border-color: #2980b9;
+            box-shadow: 0 0 5px rgba(52, 152, 219, 0.5);
+        }
+
+        h1 {
+            font-family: cursive;
+        }
+
+        hr {
+            border: 2px dotted black;
+        }
+
+        .button {
+            background-color: blue;
+            padding: 5px 10px;
+            font-size: x-large;
+            font-weight: bolder;
+            color: white;
+            border-radius: 50px;
+            border: 3px solid black;
+            margin: 5px;
+        }
+
+        button {
+            background-color: blue;
+            font-weight: bolder;
+            color: white;
+        }
+
+        button:hover {
+            background-color: blueviolet;
+        }
+
+        a {
+            text-decoration: none;
+            color: red;
+        }
+
+        a:hover {
+            color: blue;
+        }
+
+        input {
+            width: 90%;
+        }
+
+        #dataList {
+            max-height: 200px;
+            overflow-y: scroll;
+            border: 3px dashed black;
+            margin: 0;
+            padding: 0;
+        }
+
+        #uploadProgress {
+            width: 80%;
+        }
+
+        .h1 {
+            display: flex;
+            justify-content: space-evenly;
+            align-items: center;
+        }
+        .search{
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        #searchTerm{
+            text-transform: capitalize;
+        }
+        .searched{
+            padding: 5px;
+            background-color: white;
+            color: black;
+            border-radius: 5px;
+            border: 2px solid #3498db;
+        }
+        .searched:hover{
+            color: white;
+        }
+
+        @media screen and (max-width:390px) {
+            input {
+                width: 90%;
+            }
+        }
+
+        @media screen and (min-height:733px) {
+            #dataList {
+                max-height: 340px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="h1">
+            <div class="h2">
+                <h1>Cloud Data</h1>
+            </div>
+        </div>
+        <hr>
+        <form id="searchForm">
+            <div class="search">
+                <input type="text" class="file-input" id="searchTerm" name="searchTerm" placeholder="Enter Your File Name">
+                <button type="button" class="searched" onclick="handleSearch()">Search</button>
+            </div>
+        </form>
+        <form id="dataForm">
+            <div class="file-input-container">
+                <label for="fileInput" class="file-label">File:</label>
+                <input type="file" id="fileInput" name="file" class="file-input" required>
+            </div>
+            <hr>
+            <div class="file-input-container">
+                <label for="fileNameInput" class="file-label">File Name:</label>
+                <input type="text" id="fileNameInput" name="fileName" class="file-input" placeholder="Enter file name"
+                    required>
+            </div>
+            <div class="file-input-container">
+                <button type="button" onclick="saveData()" class="button">Save Data</button>
+            </div>
+        </form>
+        <div class="file-inputs-container">
+            <progress id="uploadProgress" value="0" max="100" hidden></progress>
+            <span id="uploadPercentage" hidden>0%</span>
+            <div id="dataList"></div>
+        </div>
+    </div>
+
+    <script>
+        let uploadInProgress = false;
+
+        function saveData() {
+            const fileInput = document.getElementById('fileInput');
+            const fileNameInput = document.getElementById('fileNameInput');
+            const uploadProgress = document.getElementById('uploadProgress');
+            const uploadPercentage = document.getElementById('uploadPercentage');
+
+            if (uploadInProgress) {
+                alert('An upload is already in progress. Please wait until it completes.');
+                return;
+            }
+
+            const file = fileInput.files[0];
+            let fileName = fileNameInput.value.trim();
+
+            if (!file) {
+                alert('Please select a file.');
+                return;
+            }
+
+            if (fileName === '') {
+                alert('Please enter a file name.');
+                return;
+            }
+
+            if (fileName.length > 20) {
+                alert('Please enter less than 20 characters.');
+                fileNameInput.value = '';
+                return;
+            }
+
+            fileName = fileName.substring(0, 20);
+            uploadInProgress = true;
+
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('fileName', fileName);
+
+            const xhr = new XMLHttpRequest();
+
+            xhr.upload.addEventListener('loadstart', function () {
+                uploadProgress.removeAttribute('hidden');
+                uploadPercentage.removeAttribute('hidden');
+            });
+
+            xhr.upload.addEventListener('progress', function (e) {
+                if (e.lengthComputable) {
+                    const percent = (e.loaded / e.total) * 100;
+                    uploadProgress.value = percent;
+                    uploadPercentage.textContent = percent.toFixed(2) + '%';
+                }
+            });
+
+            xhr.addEventListener('load', function () {
+                uploadInProgress = false;
+
+                if (xhr.status === 200) {
+                    const result = JSON.parse(xhr.responseText);
+                    alert(result.message);
+                    fileInput.value = null;
+                    fileNameInput.value = null;
+                    uploadProgress.value = 0;
+                    uploadProgress.setAttribute('hidden', 'true');
+                    uploadPercentage.textContent = '0%';
+                    uploadPercentage.setAttribute('hidden', 'true');
+                    loadData();
+                } else {
+                    alert('Error uploading file. Please try again.');
+                }
+            });
+
+            xhr.addEventListener('error', function () {
+                uploadInProgress = false;
+                alert('Error uploading file. Please try again.');
+            });
+
+            xhr.open('POST', '/saveData', true);
+            xhr.send(formData);
+            loadData();
+        }
+
+        function loadData(searchTerm = '') {
+            fetch(`/getData?searchTerm=${encodeURIComponent(searchTerm)}`)
+                .then(response => response.json())
+                .then(data => {
+                    const dataList = document.getElementById('dataList');
+                    dataList.innerHTML = '';
+
+                    data.data.forEach(item => {
+                        const listItem = document.createElement('div');
+                        const uppercaseFileName = item.fileName ? item.fileName.toUpperCase() : 'N/A';
+
+                        const itemTimestamp = new Date(item.timestamp);
+                        const formattedTimestamp = `${itemTimestamp.toLocaleDateString()} ${itemTimestamp.toLocaleTimeString()}`;
+
+                        listItem.innerHTML = `<p><strong>File Name:</strong> ${uppercaseFileName}
+                        <strong>File:</strong> <a href="${item.file}" download="${item.fileName}">Download File</a>
+                        <br>
+                        <strong>Time:</strong> ${formattedTimestamp}
+                        <button type="button" onclick="deleteData('${item.file}')">Delete</button>
+                        </p>`;
+                        dataList.appendChild(listItem);
+                        dataList.scrollTop = dataList.scrollHeight;
+                    });
+                })
+                .catch(error => console.error('Error:', error));
+        }
+
+        function deleteData(fileName) {
+            const filePath = fileName;
+
+            fetch('/deleteData', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ fileName: filePath }),
+            })
+                .then(response => response.json())
+                .then(result => {
+                    alert(result.message);
+                    loadData();
+                })
+                .catch(error => console.error('Error:', error));
+        }
+
+        function handleSearch() {
+            const searchTerm = document.getElementById('searchTerm').value;
+            loadData(searchTerm);
+        }
+
+        loadData();
+    </script>
+</body>
+
+</html>
