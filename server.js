@@ -10,7 +10,11 @@ const app = express();
 const port = process.env.PORT || 3000;
 
 const uri = "mongodb+srv://ramcoding8:Shah6708@fileuploader.ltub2bp.mongodb.net/test?retryWrites=true&w=majority";
-const clientOptions = { serverApi: { version: '1', strict: true, deprecationErrors: true } };
+
+const clientOptions = {
+    serverSelectionTimeoutMS: 5000,
+    serverApi: { version: '1', strict: true, deprecationErrors: true }
+};
 
 mongoose.connect(uri, clientOptions)
     .then(() => {
@@ -28,7 +32,7 @@ const fileSchema = new mongoose.Schema({
     file: String,
     fileName: String,
     timestamp: { type: Date, default: Date.now },
-    permanent: Boolean,
+    permanent: { type: Boolean, default: false }, 
 });
 
 const FileModel = mongoose.model('File', fileSchema);
@@ -55,8 +59,7 @@ app.get('/', (req, res) => {
 });
 
 app.post('/saveData', upload.single('file'), async (req, res) => {
-    const { text, image, video } = req.body;
-    const { fileName } = req.body;
+    const { text, image, video, fileName, permanent } = req.body;
 
     let deviceId = req.cookies.deviceId;
 
@@ -72,7 +75,7 @@ app.post('/saveData', upload.single('file'), async (req, res) => {
         video: video || '',
         file: req.file ? `/uploads/${req.file.filename}` : '',
         fileName: `${fileName || ''}`,
-        permanent: true,
+        permanent: permanent === 'true', // Convert string to boolean
     });
 
     try {
@@ -94,12 +97,11 @@ app.use((err, req, res, next) => {
 
 app.get('/getData', async (req, res) => {
     const deviceId = req.cookies.deviceId;
+    const { searchTerm, permanent } = req.query;
 
     if (!deviceId) {
         return res.status(400).send({ success: false, message: 'Device ID not found.' });
     }
-
-    const { searchTerm } = req.query;
 
     let query = { deviceId };
 
@@ -108,6 +110,10 @@ app.get('/getData', async (req, res) => {
             { text: { $regex: new RegExp(searchTerm, 'i') } },
             { fileName: { $regex: new RegExp(searchTerm, 'i') } },
         ];
+    }
+
+    if (permanent) {
+        query.permanent = permanent === 'true'; // Convert string to boolean
     }
 
     try {
@@ -121,40 +127,40 @@ app.get('/getData', async (req, res) => {
 
 app.post('/deleteData', async (req, res) => {
     try {
-      const fileName = req.body.fileName;
-      const deviceId = req.cookies.deviceId;
-  
-      if (!deviceId) {
-        return res.status(400).send({ success: false, message: 'Device ID not found.' });
-      }
-  
-      if (!fileName) {
-        return res.status(400).send({ success: false, message: 'File name is empty.' });
-      }
-  
-      const cleanFileName = fileName.replace(/^\/uploads\//, '');
-      const filePath = path.join(__dirname, 'uploads', cleanFileName);
-  
-      const fileExists = await fs.access(filePath)
-        .then(() => true)
-        .catch(() => false);
-  
-      if (!fileExists) {
-        return res.status(404).send({ success: false, message: 'File not found.' });
-      }
-  
-      await fs.unlink(filePath);
-  
-      await FileModel.deleteOne({ deviceId, file: `/uploads/${cleanFileName}` });
-  
-      console.log('File and data deleted successfully:', fileName);
-      res.send({ success: true, message: 'File and data deleted successfully.' });
+        const fileName = req.body.fileName;
+        const deviceId = req.cookies.deviceId;
+
+        if (!deviceId) {
+            return res.status(400).send({ success: false, message: 'Device ID not found.' });
+        }
+
+        if (!fileName) {
+            return res.status(400).send({ success: false, message: 'File name is empty.' });
+        }
+
+        const cleanFileName = fileName.replace(/^\/uploads\//, '');
+        const filePath = path.join(__dirname, 'uploads', cleanFileName);
+
+        const fileExists = await fs.access(filePath)
+            .then(() => true)
+            .catch(() => false);
+
+        if (!fileExists) {
+            return res.status(404).send({ success: false, message: 'File not found.' });
+        }
+
+        await fs.unlink(filePath);
+
+        await FileModel.deleteOne({ deviceId, file: `/uploads/${cleanFileName}` });
+
+        console.log('File and data deleted successfully:', fileName);
+        res.send({ success: true, message: 'File and data deleted successfully.' });
     } catch (error) {
-      console.error('Error deleting file and data:', error);
-      res.status(500).send({ success: false, message: 'Error deleting file and data.' });
+        console.error('Error deleting file and data:', error);
+        res.status(500).send({ success: false, message: 'Error deleting file and data.' });
     }
-  });
-  
+});
+
 
 function generateDeviceId() {
     return 'device_' + Math.random().toString(36).substr(2, 9);
