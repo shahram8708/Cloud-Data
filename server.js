@@ -75,8 +75,9 @@ app.post('/saveData', upload.single('file'), async (req, res) => {
         video: video || '',
         file: req.file ? `/uploads/${req.file.filename}` : '',
         fileName: `${fileName || ''}`,
-        permanent: permanent === 'true',
+        permanent: true, 
     });
+    
 
     try {
         if (mongoose.connection.readyState !== 1) {
@@ -98,7 +99,7 @@ app.get('/download/:fileName', async (req, res) => {
             return res.status(400).send({ success: false, message: 'File name is empty.' });
         }
 
-        const cleanFileName = fileName.replace(/^\/uploads\//, '');
+        const cleanFileName = decodeURIComponent(fileName); 
         const filePath = path.join(__dirname, 'uploads', cleanFileName);
 
         const fileExists = await fs.access(filePath)
