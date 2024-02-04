@@ -32,7 +32,7 @@ const fileSchema = new mongoose.Schema({
     file: String,
     fileName: String,
     timestamp: { type: Date, default: Date.now },
-    permanent: { type: Boolean, default: true }, 
+    permanent: { type: Boolean, default: true },
 });
 
 const FileModel = mongoose.model('File', fileSchema);
@@ -90,9 +90,30 @@ app.post('/saveData', upload.single('file'), async (req, res) => {
     }
 });
 
-app.use((err, req, res, next) => {
-    console.error(err.stack);
-    res.status(500).send('Something went wrong!');
+app.get('/download/:fileName', async (req, res) => {
+    try {
+        const fileName = req.params.fileName;
+
+        if (!fileName) {
+            return res.status(400).send({ success: false, message: 'File name is empty.' });
+        }
+
+        const cleanFileName = fileName.replace(/^\/uploads\//, '');
+        const filePath = path.join(__dirname, 'uploads', cleanFileName);
+
+        const fileExists = await fs.access(filePath)
+            .then(() => true)
+            .catch(() => false);
+
+        if (!fileExists) {
+            return res.status(404).send({ success: false, message: 'File not found.' });
+        }
+
+        res.download(filePath);
+    } catch (error) {
+        console.error('Error downloading file:', error);
+        res.status(500).send({ success: false, message: 'Error downloading file.' });
+    }
 });
 
 app.get('/getData', async (req, res) => {
@@ -161,10 +182,10 @@ app.post('/deleteData', async (req, res) => {
     }
 });
 
-
 function generateDeviceId() {
     return 'device_' + Math.random().toString(36).substr(2, 9);
 }
+
 process.on('SIGINT', async () => {
     try {
         await mongoose.connection.close();
